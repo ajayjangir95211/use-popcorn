@@ -1,0 +1,198 @@
+// 0.25,0.5,0.75,1.25,2.0,3.25,5.25,8.5 ,13.75,22.25
+// 0.5 ,1.0,1.5 ,2.5 ,4.0,6.5 ,10.5,17.0,27.5 ,44.5
+// 1   ,2  ,3   ,5   ,8  ,13  ,21  ,34  ,55   ,89
+// 233,377, 610, 987,1597
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  word-break: keep-all;
+  color: inherit;
+}
+
+*:focus {
+  outline: none; /* Remove default outline */
+  transition: box-shadow 0.2s ease-in-out; /* Add a smooth transition for better UX */
+}
+
+html {
+  font-size: calc(25% + 0.067vw);
+  scroll-behavior: smooth;
+}
+
+body {
+  font-size: 3.25rem;
+  font-family: "Poppins", sans-serif;
+  color: #fff;
+}
+
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin form-element {
+  font-size: inherit;
+  border: none;
+  border-radius: 256rem;
+  padding: 2rem 3rem;
+}
+
+button,
+select {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+button:disabled {
+  color: #666666;
+  cursor: not-allowed;
+  opacity: 0.25;
+}
+
+.btn {
+  @include flex-center();
+  @include form-element();
+}
+
+a {
+  text-decoration: none;
+}
+
+ul {
+  list-style: none;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0) scale(2.5);
+  }
+
+  100% {
+    transform: rotate(360deg) scale(2.5);
+  }
+}
+
+.message {
+  color: #000;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3rem;
+  background-color: #6741d9;
+  padding: 3% 5%;
+
+  input {
+    @include form-element();
+    height: 6.5rem;
+    width: 75%;
+    color: #000;
+  }
+
+  .result-msg {
+    font-weight: 600;
+    font-size: 4rem;
+  }
+}
+
+.movies {
+  display: flex;
+  overflow: auto;
+  white-space: nowrap;
+  gap: 3rem;
+  padding: 2% 3%;
+}
+
+.movie-preview {
+  background-color: rgba(#000, 0.75);
+  flex: 0 0 auto;
+  width: 55rem;
+  display: flex;
+  align-items: center;
+  gap: 3rem;
+  padding: 2% 3%;
+  cursor: pointer;
+  transition: all 0.3s;
+
+  &:hover {
+    transform: scale(1.0625);
+  }
+
+  img {
+    height: 13rem;
+    min-width: 10.5rem;
+  }
+
+  div {
+    overflow: hidden;
+  }
+
+  h4 {
+    overflow: hidden; /* Ensure the overflow is hidden */
+    text-overflow: ellipsis; /* Show ellipsis when text overflows */
+  }
+}
+
+.movie {
+  background-color: rgba(#000, 0.75);
+  header {
+    margin: auto;
+    width: 75%;
+    padding: 2% 3%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8rem;
+    img {
+      height: 55rem;
+      min-width: 34rem;
+    }
+
+    .overview {
+      display: flex;
+      flex-direction: column;
+      gap: 3rem;
+    }
+  }
+
+  section p {
+    font-style: italic;
+    text-align: center;
+    padding: 3% 5%;
+  }
+}
+
+@media (min-width: 610px) {
+  main {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+
+    > * {
+      width: 100%;
+    }
+  }
+
+  .header {
+    flex-direction: row;
+    justify-content: space-between;
+    white-space: nowrap;
+    input {
+      width: 50%;
+    }
+  }
+
+  .movies {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .movie-preview {
+    width: auto;
+  }
+}
