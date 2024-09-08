@@ -3,51 +3,73 @@ import "./App.scss";
 import { API_URL, TIMEOUT_SEC } from "./js/config";
 import { timeout } from "./js/helper";
 
-function App() {
-  const [list, setList] = useState([]);
-  const [query, setQuery] = useState("");
-  const [movieId, setMovieId] = useState("");
+function useFetch(url) {
+  const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    setError("");
-    setList([]);
-    setMovieId("");
-    if (query.length < 3) return;
-    setIsLoading(true);
-    searchMovies(query);
-  }, [query]);
-
-  async function searchMovies(query) {
-    try {
-      const res = await Promise.race([
-        fetch(`${API_URL}&s=${query}`),
-        timeout(TIMEOUT_SEC),
-      ]);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      if (data.Response === "False") throw new Error(data.Error);
-      setList(data.Search);
-    } catch (error) {
-      console.error(error);
-      setError(error.message);
-    } finally {
-      setIsLoading(false);
+    const controller = new AbortController();
+    const { signal } = controller;
+    async function fetchData() {
+      try {
+        const res = await Promise.race([
+          fetch(url, { signal }),
+          timeout(TIMEOUT_SEC),
+        ]);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        if (data.Response === "False") throw new Error(data.Error);
+        setData(data);
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          console.error(error);
+          setError(error.message);
+        }
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }
+    setData(null);
+    setError("");
+    if (!url) return;
+    setIsLoading(true);
+    fetchData();
+
+    return () => controller.abort();
+  }, [url]);
+
+  return { data, isLoading, error };
+}
+
+function App() {
+  const [query, setQuery] = useState("");
+  const [movieId, setMovieId] = useState("");
+
+  const movieList = useFetch(query.length > 2 ? `${API_URL}&s=${query}` : null);
+  const movie = useFetch(movieId ? `${API_URL}&i=${movieId}` : null);
+
+  // useEffect(() => setMovieId(""), [query]);
 
   return (
     <>
-      <Header query={query} onChangeHandler={setQuery} total={list.length} />
+      <Header
+        query={query}
+        onChangeHandler={setQuery}
+        total={movieList.data?.Search.length || 0}
+      />
       <main>
         <Movies
-          list={list}
-          isLoading={isLoading}
-          error={error}
+          list={movieList.data?.Search}
+          isLoading={movieList.isLoading}
+          error={movieList.error}
           clickHandler={setMovieId}
         />
-        <MovieDetails movieId={movieId} />
+        <MovieDetails
+          movie={movie.data}
+          isLoading={movie.isLoading}
+          error={movie.error}
+        />
       </main>
     </>
   );
@@ -69,90 +91,52 @@ function Header({ query, onChangeHandler, total }) {
 }
 
 function Movies({ list, isLoading, error, clickHandler }) {
+  if (isLoading) return <p className="message">Loading...</p>;
+  if (error) return <p className="message">Error: {error}</p>;
+  if (!list) return <p className="message">Start searching by movie name</p>;
   return (
-    <>
-      {isLoading ? <p className="message">Loading...</p> : null}
-      {error ? <p className="message">Error: {error}</p> : null}
-      {list.length ? (
-        <ul className="movies">
-          {list.map((movie, i) => (
-            <li
-              className="movie-preview"
-              onClick={() => clickHandler(movie.imdbID)}
-              key={i}
-            >
-              <img src={movie.Poster} alt={movie.Title} />
-              <div>
-                <h4>{movie.Title}</h4>
-                <p>{movie.Year}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      ) : null}
-    </>
+    <ul className="movies">
+      {list.map((movie, i) => (
+        <li
+          className="movie-preview"
+          onClick={() => clickHandler(movie.imdbID)}
+          key={i}
+        >
+          <img src={movie.Poster} alt={movie.Title} />
+          <div>
+            <h4>{movie.Title}</h4>
+            <p>{movie.Year}</p>
+          </div>
+        </li>
+      ))}
+    </ul>
   );
 }
 
-function MovieDetails({ movieId }) {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [movie, setMovie] = useState({});
-
-  useEffect(() => {
-    setError("");
-    setMovie({});
-    if (!movieId) return;
-    setIsLoading(true);
-    getMovie(movieId);
-  }, [movieId]);
-
-  async function getMovie(movieId) {
-    try {
-      const res = await Promise.race([
-        fetch(`${API_URL}&i=${movieId}`),
-        timeout(TIMEOUT_SEC),
-      ]);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-
-      if (data.Response === "False") throw new Error(data.Error);
-      console.log(data);
-
-      setMovie(data);
-    } catch (error) {
-      console.error(error);
-      setError(error.message);
-    } finally {
-      setIsLoading(false);
-    }
-  }
+function MovieDetails({ movie, isLoading, error }) {
+  if (isLoading) return <p className="message">Loading...</p>;
+  if (error) return <p className="message">Error: {error}</p>;
+  if (!movie) return <p className="message"></p>;
 
   return (
-    <>
-      {isLoading ? <p className="message">Loading...</p> : null}
-      {error ? <p className="message">Error: {error}</p> : null}
-      {Object.entries(movie).length ? (
-        <article className="movie">
-          <header>
-            <img src={movie.Poster} alt={movie.Title} />
-            <div className="overview">
-              <h2>{movie.Title}</h2>
-              <p>
-                {movie.Released} &bull; {movie.Runtime}
-              </p>
-              <p>{movie.Genre}</p>
-              <p>{movie.imdbRating} ⭐ IMDb Rating</p>
-            </div>
-          </header>
-          <section>
-            <p>{movie.Plot}</p>
-            <p>Starring {movie.Actors}</p>
-            <p>Directed By {movie.Director}</p>
-          </section>
-        </article>
-      ) : null}
-    </>
+    <article className="movie">
+      <header>
+        <img src={movie.Poster} alt={movie.Title} />
+        <div className="overview">
+          <h2>{movie.Title}</h2>
+          <p>
+            {movie.Released} &bull; {movie.Runtime}
+          </p>
+          <p>{movie.Genre}</p>
+          <p>{movie.imdbRating} ⭐ IMDb Rating</p>
+        </div>
+      </header>
+      <section>
+        <p>{movie.Plot}</p>
+        <p>Starring {movie.Actors}</p>
+        <p>Directed By {movie.Director}</p>
+      </section>
+    </article>
   );
 }
 
